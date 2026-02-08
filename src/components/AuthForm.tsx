@@ -150,7 +150,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="input-field"
-              placeholder="John Doe"
+              placeholder="Pretty Kaye"
               required={!isLogin}
             />
           </div>
