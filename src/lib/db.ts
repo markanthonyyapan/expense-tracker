@@ -1,14 +1,11 @@
-import fs from "fs";
-import path from "path";
+"use client";
+
 import { Expense, ExpenseData } from "@/types/expense";
 
-const DATA_FILE = path.join(process.cwd(), "data", "expenses.json");
+const STORAGE_KEY = "expense-tracker-data";
 
 export function readExpenses(): ExpenseData {
-  try {
-    const fileContents = fs.readFileSync(DATA_FILE, "utf-8");
-    return JSON.parse(fileContents);
-  } catch {
+  if (typeof window === "undefined") {
     return {
       expenses: [],
       categories: [
@@ -22,14 +19,38 @@ export function readExpenses(): ExpenseData {
       ],
     };
   }
+
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error("Failed to read expenses:", error);
+  }
+
+  return {
+    expenses: [],
+    categories: [
+      "Food",
+      "Transportation",
+      "Utilities",
+      "Entertainment",
+      "Shopping",
+      "Healthcare",
+      "Other",
+    ],
+  };
 }
 
 export function writeExpenses(data: ExpenseData): void {
-  const dir = path.dirname(DATA_FILE);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("Failed to save expenses:", error);
   }
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
 export function addExpense(

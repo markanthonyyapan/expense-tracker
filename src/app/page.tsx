@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Expense, ExpenseData } from "@/types/expense";
 import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseList from "@/components/ExpenseList";
 import ConfirmationModal from "@/components/ConfirmationModal";
+
+const STORAGE_KEY = "expense-tracker-data";
 
 export default function Home() {
   const [data, setData] = useState<ExpenseData | null>(null);
@@ -27,43 +29,88 @@ export default function Home() {
     date: string;
   } | null>(null);
 
-  const fetchData = async () => {
-    try {
-      const response = await fetch("/api/expenses");
-      const expenseData = await response.json();
-      setData(expenseData);
-    } catch (error) {
-      console.error("Failed to fetch expenses:", error);
-    } finally {
-      setLoading(false);
+  const readExpenses = useCallback(() => {
+    if (typeof window === "undefined") {
+      return {
+        expenses: [],
+        categories: [
+          "Food",
+          "Transportation",
+          "Utilities",
+          "Entertainment",
+          "Shopping",
+          "Healthcare",
+          "Other",
+        ],
+      };
     }
-  };
+
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch (error) {
+      console.error("Failed to read expenses:", error);
+    }
+
+    return {
+      expenses: [],
+      categories: [
+        "Food",
+        "Transportation",
+        "Utilities",
+        "Entertainment",
+        "Shopping",
+        "Healthcare",
+        "Other",
+      ],
+    };
+  }, []);
+
+  const writeExpenses = useCallback((expenseData: ExpenseData) => {
+    if (typeof window === "undefined") return;
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(expenseData));
+    } catch (error) {
+      console.error("Failed to save expenses:", error);
+    }
+  }, []);
+
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    const expenseData = readExpenses();
+    setData(expenseData);
+    setLoading(false);
+  }, [readExpenses]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
-  const handleAddExpense = async (expense: {
+  const handleAddExpense = (expense: {
     title: string;
     amount: number;
     category: string;
     date: string;
   }) => {
-    try {
-      const response = await fetch("/api/expenses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(expense),
-      });
-      if (response.ok) {
-        fetchData();
-        setShowForm(false);
-        setEditingExpense(null);
-        setFormData(null);
-      }
-    } catch (error) {
-      console.error("Failed to add expense:", error);
-    }
+    const newExpense: Expense = {
+      ...expense,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+    };
+
+    const newData = {
+      ...data!,
+      expenses: [newExpense, ...data!.expenses],
+    };
+
+    writeExpenses(newData);
+    setData(newData);
+    setShowForm(false);
+    setEditingExpense(null);
+    setFormData(null);
   };
 
   const handleUpdateExpense = (expense: {
@@ -72,44 +119,39 @@ export default function Home() {
     category: string;
     date: string;
   }) => {
-    if (!editingExpense) return;
-    setPendingEditData(expense);
-    setShowEditConfirmModal(true);
+    if (!editingExpense || !data) return;
+
+    const updatedExpense: Expense = {
+      ...expense,
+      id: editingExpense.id,
+      createdAt: editingExpense.createdAt,
+    };
+
+    const newData = {
+      ...data,
+      expenses: data.expenses.map((e) =>
+        e.id === editingExpense.id ? updatedExpense : e,
+      ),
+    };
+
+    writeExpenses(newData);
+    setData(newData);
+    setShowForm(false);
+    setEditingExpense(null);
+    setFormData(null);
+    setPendingEditData(null);
   };
 
-  const confirmUpdateExpense = async () => {
-    if (!pendingEditData || !editingExpense) return;
-    try {
-      const response = await fetch(`/api/expenses/${editingExpense.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pendingEditData),
-      });
-      if (response.ok) {
-        fetchData();
-        setShowForm(false);
-        setEditingExpense(null);
-        setFormData(null);
-      }
-    } catch (error) {
-      console.error("Failed to update expense:", error);
-    } finally {
-      setShowEditConfirmModal(false);
-      setPendingEditData(null);
-    }
-  };
+  const handleDeleteExpense = (id: string) => {
+    if (!data) return;
 
-  const handleDeleteExpense = async (id: string) => {
-    try {
-      const response = await fetch(`/api/expenses/${id}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        fetchData();
-      }
-    } catch (error) {
-      console.error("Failed to delete expense:", error);
-    }
+    const newData = {
+      ...data,
+      expenses: data.expenses.filter((e) => e.id !== id),
+    };
+
+    writeExpenses(newData);
+    setData(newData);
   };
 
   const handleEditClick = (expense: Expense) => {
@@ -436,7 +478,7 @@ export default function Home() {
         confirmVariant="primary"
         onConfirm={() => {
           if (pendingEditData) {
-            confirmUpdateExpense();
+            handleUpdateExpense(pendingEditData);
           } else {
             setShowForm(false);
             setEditingExpense(null);
