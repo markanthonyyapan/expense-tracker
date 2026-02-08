@@ -5,6 +5,7 @@ import { Expense } from "@/types/expense";
 import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseList from "@/components/ExpenseList";
 import AuthForm from "@/components/AuthForm";
+import Analytics from "@/components/Analytics";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
@@ -55,6 +56,7 @@ export default function Home() {
     date: string;
   } | null>(null);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
+  const [view, setView] = useState<"expenses" | "analytics">("expenses");
 
   // Fetch user profile
   useEffect(() => {
@@ -528,32 +530,86 @@ export default function Home() {
             </div>
           )}
 
-          {/* Add Expense Button */}
+          {/* View Toggle and Add Expense Button */}
           {!showForm && (
-            <button
-              onClick={() => {
-                setEditingExpense(null);
-                setFormData(null);
-                setShowForm(true);
-              }}
-              className="w-full mb-6 btn-primary py-3 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            <>
+              {/* View Toggle */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setView("expenses")}
+                  className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all ${
+                    view === "expenses"
+                      ? "bg-primary text-primary-foreground shadow-lg"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                  }`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                  Expenses
+                </button>
+                <button
+                  onClick={() => setView("analytics")}
+                  className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all ${
+                    view === "analytics"
+                      ? "bg-primary text-primary-foreground shadow-lg"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                  }`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                  Analytics
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  setEditingExpense(null);
+                  setFormData(null);
+                  setShowForm(true);
+                }}
+                className="w-full mb-6 btn-primary py-3 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Add New Expense
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Add New Expense
+              </button>
+            </>
           )}
 
           {/* Loading State */}
@@ -581,13 +637,18 @@ export default function Home() {
             </div>
           )}
 
-          {/* Expense List */}
-          {!loading && initialDataLoaded && (
+          {/* Expense List or Analytics */}
+          {!loading && initialDataLoaded && view === "expenses" && (
             <ExpenseList
               expenses={filteredExpenses}
               onDelete={handleDeleteExpense}
               onEdit={handleEditClick}
             />
+          )}
+
+          {/* Analytics View */}
+          {!loading && initialDataLoaded && view === "analytics" && (
+            <Analytics expenses={expenses} />
           )}
 
           {/* Footer */}
