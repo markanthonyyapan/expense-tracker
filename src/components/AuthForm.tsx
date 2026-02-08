@@ -106,7 +106,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
           Verify Your Email
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          We've sent a verification link to <strong>{email}</strong>
+          We&apos;ve sent a verification link to <strong>{email}</strong>
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-500">
           Please check your email and click the link to verify your account.

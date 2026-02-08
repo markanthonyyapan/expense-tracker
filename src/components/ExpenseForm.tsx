@@ -46,7 +46,7 @@ export default function ExpenseForm({
       setFormData(data);
       onDataChange?.(data);
     }
-  }, [initialData]); // Removed onDataChange to prevent infinite loop
+  }, [initialData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = (data: ExpenseFormData) => {
     setFormData(data);
