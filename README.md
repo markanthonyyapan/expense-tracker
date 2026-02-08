@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Expense Tracker
+
+A personal expense tracker built with Next.js 14, Tailwind CSS, and local JSON storage.
+
+## Features
+
+- 💰 Track expenses with categories
+- 📅 Daily spending history
+- 🔍 Search and filter expenses
+- ✏️ Edit and delete expenses
+- 📱 Install as app on Android & iPad (PWA)
+- 🌙 Dark mode support
 
 ## Getting Started
 
-First, run the development server:
+1. Install dependencies:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+   ```bash
+   npm install
+   ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Run the development server:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   ```bash
+   npm run dev
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Open [http://localhost:3000](http://localhost:3000)
 
-## Learn More
+## Deploy to Vercel (Free)
 
-To learn more about Next.js, take a look at the following resources:
+### Step 1: Push to GitHub
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Create a new repository on GitHub:
+   - Go to https://github.com/new
+   - Repository name: `expense-tracker`
+   - Select "Public" or "Private"
+   - Click "Create repository"
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Push your code:
+   ```bash
+   cd expense-tracker
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/YOUR_USERNAME/expense-tracker.git
+   git push -u origin main
+   ```
 
-## Deploy on Vercel
+### Step 2: Deploy to Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Go to https://vercel.com and sign up (use GitHub to sign in)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+2. Click "Add New Project"
+
+3. Select your `expense-tracker` repository
+
+4. Click "Deploy"
+
+5. Wait for deployment to complete (~1-2 minutes)
+
+6. You'll get a URL like: `https://expense-tracker-xxx.vercel.app`
+
+### Step 3: Install on Android & iPad
+
+**On Android (Chrome):**
+
+1. Open your Vercel URL in Chrome
+2. Tap the 3 dots menu (⋮)
+3. Tap "Install App" or "Add to Home Screen"
+4. The app will appear in your app drawer
+
+**On iPad (Safari):**
+
+1. Open your Vercel URL in Safari
+2. Tap the Share button (□↗)
+3. Tap "Add to Home Screen"
+4. The app will appear on your home screen
+
+## Files to Push to GitHub
+
+✅ **Push these:**
+
+- `src/` - All source code
+- `public/` - Icons and manifest
+- `package.json` - Dependencies
+- `next.config.mjs` - Next.js config
+- `tailwind.config.ts` - Tailwind config
+- `tsconfig.json` - TypeScript config
+- `postcss.config.mjs` - PostCSS config
+- `README.md` - This file
+
+❌ **Don't push:**
+
+- `node_modules/` - Installed packages (auto-generated)
+- `.next/` - Build output (auto-generated)
+- `data/expense-data.json` - Your personal expense data
+
+## Note on Data Storage
+
+Your expense data is stored locally in `data/expenses.json`. This file is not synced to the cloud - it's only on your device. To back up your data, you can:
+
+1. Manually copy the file
+2. Or use version control to track changes
+
+## Tech Stack
+
+- **Framework:** Next.js 14 (App Router)
+- **Styling:** Tailwind CSS
+- **Language:** TypeScript
+- **Storage:** Local JSON file

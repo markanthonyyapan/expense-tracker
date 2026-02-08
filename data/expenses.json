@@ -1,29 +1,37 @@
 {
   "expenses": [
     {
-      "id": "1",
-      "title": "Grocery Shopping",
-      "amount": 45.50,
+      "title": "Laag",
+      "amount": 1200,
+      "category": "Entertainment",
+      "date": "2026-02-08",
+      "id": "1770536038703",
+      "createdAt": "2026-02-08T07:33:58.703Z"
+    },
+    {
+      "title": "Snack",
+      "amount": 100,
       "category": "Food",
       "date": "2026-02-08",
-      "createdAt": "2026-02-08T07:00:00.000Z"
+      "id": "1770535896486",
+      "createdAt": "2026-02-08T07:31:36.486Z"
     },
     {
-      "id": "2",
-      "title": "Gas Station",
-      "amount": 35.00,
-      "category": "Transportation",
-      "date": "2026-02-07",
-      "createdAt": "2026-02-07T08:00:00.000Z"
-    },
-    {
-      "id": "3",
-      "title": "Electric Bill",
-      "amount": 85.00,
-      "category": "Utilities",
-      "date": "2026-02-01",
-      "createdAt": "2026-02-01T10:00:00.000Z"
+      "title": "Pagkaon",
+      "amount": 200,
+      "category": "Food",
+      "date": "2026-02-08",
+      "id": "1770535203376",
+      "createdAt": "2026-02-08T07:20:03.376Z"
     }
   ],
-  "categories": ["Food", "Transportation", "Utilities", "Entertainment", "Shopping", "Healthcare", "Other"]
+  "categories": [
+    "Food",
+    "Transportation",
+    "Utilities",
+    "Entertainment",
+    "Shopping",
+    "Healthcare",
+    "Other"
+  ]
 }
