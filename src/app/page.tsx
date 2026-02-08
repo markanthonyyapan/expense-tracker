@@ -246,14 +246,6 @@ export default function Home() {
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
-
   const handleUpdateUserName = async (newName: string) => {
     if (!user || !newName.trim()) return;
 
