@@ -6,6 +6,8 @@ import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseList from "@/components/ExpenseList";
 import AuthForm from "@/components/AuthForm";
 import Analytics from "@/components/Analytics";
+import ThemeToggle from "@/components/ThemeToggle";
+import ProfileDropdown from "@/components/ProfileDropdown";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
@@ -21,6 +23,7 @@ import {
   where,
   Timestamp,
   getDoc,
+  setDoc,
 } from "firebase/firestore";
 
 const CATEGORIES = [
@@ -251,6 +254,25 @@ export default function Home() {
     }
   };
 
+  const handleUpdateUserName = async (newName: string) => {
+    if (!user || !newName.trim()) return;
+
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          name: newName.trim(),
+          email: user.email,
+          updatedAt: Timestamp.now(),
+        },
+        { merge: true },
+      );
+      setUserName(newName.trim());
+    } catch (error) {
+      console.error("Error updating user name:", error);
+    }
+  };
+
   // Show loading while checking auth
   if (authLoading) {
     return (
@@ -336,8 +358,8 @@ export default function Home() {
     <>
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md mx-auto">
-          {/* Header with user info and sign out */}
-          <header className="mb-8 text-center">
+          {/* Header with user info and profile dropdown */}
+          <header className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary shadow-lg">
@@ -352,7 +374,7 @@ export default function Home() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
                 </div>
@@ -365,33 +387,22 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={handleSignOut}
-                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
-                Sign Out
-              </button>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <ProfileDropdown
+                  userName={userName || user.email?.split("@")[0] || "User"}
+                  onUpdateName={handleUpdateUserName}
+                />
+              </div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
-              Expense Tracker
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Manage your personal finances
-            </p>
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+                Expense Tracker
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Manage your personal finances
+              </p>
+            </div>
           </header>
 
           {/* Total Card */}
