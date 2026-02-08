@@ -170,7 +170,7 @@ export default function ExpenseList({
                 {dayExpenses.map((expense, index) => (
                   <div
                     key={expense.id}
-                    className={`card flex items-center justify-between hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 ${
+                    className={`card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 ${
                       deletingId === expense.id ? "opacity-50 scale-95" : ""
                     }`}
                     style={{
@@ -179,11 +179,11 @@ export default function ExpenseList({
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div
-                        className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${getCategoryColor(expense.category)}`}
+                        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${getCategoryColor(expense.category)}`}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4"
+                          className="h-5 w-5"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -197,62 +197,64 @@ export default function ExpenseList({
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-800 dark:text-gray-200 truncate">
+                        <h4 className="font-semibold text-gray-800 dark:text-gray-200 truncate">
                           {expense.title}
                         </h4>
                         <span
-                          className={`text-xs px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${getCategoryColor(expense.category)}`}
+                          className={`text-xs px-2.5 py-1 rounded-full inline-flex items-center gap-1 mt-1 ${getCategoryColor(expense.category)}`}
                         >
                           {expense.category}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 ml-3">
-                      <span className="font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                    <div className="flex items-center justify-between sm:justify-end gap-3 pl-13 sm:pl-0">
+                      <span className="font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">
                         {formatCurrency(expense.amount)}
                       </span>
-                      {/* Edit Button */}
-                      <button
-                        onClick={() => onEdit(expense)}
-                        className="flex-shrink-0 p-1.5 rounded-lg text-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 group"
-                        aria-label="Edit expense"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 transition-transform group-hover:scale-110"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
+                      <div className="flex items-center gap-1">
+                        {/* Edit Button */}
+                        <button
+                          onClick={() => onEdit(expense)}
+                          className="flex-shrink-0 p-2 rounded-lg text-blue-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 group"
+                          aria-label="Edit expense"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
-                      </button>
-                      {/* Delete Button */}
-                      <button
-                        onClick={() => handleDeleteClick(expense)}
-                        className="flex-shrink-0 p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 group"
-                        aria-label="Delete expense"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 transition-transform group-hover:scale-110"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 transition-transform group-hover:scale-110"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                        {/* Delete Button */}
+                        <button
+                          onClick={() => handleDeleteClick(expense)}
+                          className="flex-shrink-0 p-2 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 group"
+                          aria-label="Delete expense"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                      </button>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 transition-transform group-hover:scale-110"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import ConfirmationModal from "./ConfirmationModal";
 
 interface ProfileDropdownProps {
   userName: string;
@@ -16,6 +17,8 @@ export default function ProfileDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editName, setEditName] = useState(userName);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const [hasNameChanged, setHasNameChanged] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,6 +29,7 @@ export default function ProfileDropdown({
       ) {
         setIsOpen(false);
         setShowEditProfile(false);
+        setShowSignOutConfirm(false);
       }
     }
 
@@ -33,19 +37,38 @@ export default function ProfileDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSignOut = async () => {
+  useEffect(() => {
+    setHasNameChanged(editName.trim() !== userName);
+  }, [editName, userName]);
+
+  const handleSignOut = () => {
+    setShowSignOutConfirm(true);
+  };
+
+  const handleConfirmSignOut = async () => {
     await signOut();
     setIsOpen(false);
+    setShowSignOutConfirm(false);
   };
 
   const handleEditProfile = () => {
+    setEditName(userName);
     setShowEditProfile(true);
   };
 
   const handleSaveName = async () => {
-    await onUpdateName(editName);
+    if (editName.trim()) {
+      await onUpdateName(editName);
+    }
     setShowEditProfile(false);
     setIsOpen(false);
+    setHasNameChanged(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditName(userName);
+    setShowEditProfile(false);
+    setHasNameChanged(false);
   };
 
   return (
@@ -72,7 +95,9 @@ export default function ProfileDropdown({
         </div>
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className={`h-4 w-4 text-gray-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`h-4 w-4 text-gray-500 transition-transform ${
+            isOpen ? "rotate-180" : ""
+          }`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -103,16 +128,18 @@ export default function ProfileDropdown({
               <div className="flex gap-2">
                 <button
                   onClick={handleSaveName}
-                  className="flex-1 btn-primary py-2 text-sm"
+                  disabled={!hasNameChanged}
+                  className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+                    hasNameChanged
+                      ? "bg-primary text-primary-foreground hover:opacity-90"
+                      : "bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                  }`}
                 >
                   Save
                 </button>
                 <button
-                  onClick={() => {
-                    setShowEditProfile(false);
-                    setEditName(userName);
-                  }}
-                  className="flex-1 btn-secondary py-2 text-sm"
+                  onClick={handleCancelEdit}
+                  className="flex-1 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>
@@ -174,6 +201,18 @@ export default function ProfileDropdown({
           )}
         </div>
       )}
+
+      {/* Sign Out Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showSignOutConfirm}
+        title="Sign Out"
+        message="Are you sure you want to sign out?"
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        onConfirm={handleConfirmSignOut}
+        onCancel={() => setShowSignOutConfirm(false)}
+      />
     </div>
   );
 }
