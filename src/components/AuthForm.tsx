@@ -6,7 +6,8 @@ import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 interface AuthFormProps {
   onSuccess?: () => void;
@@ -14,6 +15,7 @@ interface AuthFormProps {
 
 export default function AuthForm({ onSuccess }: AuthFormProps) {
   const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -41,6 +43,12 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
           email,
           password,
         );
+        // Save user profile to Firestore
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          name: name,
+          email: email,
+          createdAt: new Date().toISOString(),
+        });
         await sendEmailVerification(userCredential.user);
         setVerificationSent(true);
       }
@@ -98,7 +106,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
           Verify Your Email
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          We&apos;ve sent a verification link to <strong>{email}</strong>
+          We've sent a verification link to <strong>{email}</strong>
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-500">
           Please check your email and click the link to verify your account.
@@ -132,6 +140,22 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {!isLogin && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Full Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input-field"
+              placeholder="John Doe"
+              required={!isLogin}
+            />
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Email

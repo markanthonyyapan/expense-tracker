@@ -17,8 +17,9 @@ import {
   onSnapshot,
   query,
   orderBy,
-  Timestamp,
   where,
+  Timestamp,
+  getDoc,
 } from "firebase/firestore";
 
 const CATEGORIES = [
@@ -34,6 +35,7 @@ const CATEGORIES = [
 export default function Home() {
   const { user, loading: authLoading, signOut } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [userName, setUserName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -54,7 +56,30 @@ export default function Home() {
   } | null>(null);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
-  // Subscribe to real-time updates from Firebase - only for authenticated users
+  // Fetch user profile
+  useEffect(() => {
+    if (!user) {
+      setUserName("");
+      return;
+    }
+
+    const fetchUserProfile = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setUserName(userData.name || user.email?.split("@")[0] || "User");
+        } else {
+          setUserName(user.email?.split("@")[0] || "User");
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        setUserName(user.email?.split("@")[0] || "User");
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
   useEffect(() => {
     if (!user) {
       setExpenses([]);
@@ -311,7 +336,7 @@ export default function Home() {
                     Signed in as
                   </p>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate max-w-[150px]">
-                    {user.email}
+                    {userName || user.email?.split("@")[0]}
                   </p>
                 </div>
               </div>

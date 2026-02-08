@@ -46,7 +46,7 @@ export default function ExpenseForm({
       setFormData(data);
       onDataChange?.(data);
     }
-  }, [initialData, onDataChange]);
+  }, [initialData]); // Removed onDataChange to prevent infinite loop
 
   const handleChange = (data: ExpenseFormData) => {
     setFormData(data);
@@ -172,6 +172,7 @@ export default function ExpenseForm({
               onChange={(e) =>
                 handleChange({ ...formData, amount: e.target.value })
               }
+              onWheel={(e) => e.currentTarget.blur()}
               className="input-field pl-8"
               placeholder="0.00"
               required

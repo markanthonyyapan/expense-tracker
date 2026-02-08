@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "Expense Tracker",
@@ -28,7 +29,9 @@ export default function RootLayout({
         <link rel="icon" href="/icon-192.svg" sizes="192x192" />
         <link rel="apple-touch-icon" href="/icon-192.svg" />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
