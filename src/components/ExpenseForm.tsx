@@ -46,7 +46,7 @@ export default function ExpenseForm({
       setFormData(data);
       onDataChange?.(data);
     }
-  }, [initialData]);
+  }, [initialData, onDataChange]);
 
   const handleChange = (data: ExpenseFormData) => {
     setFormData(data);

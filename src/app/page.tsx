@@ -295,7 +295,7 @@ export default function Home() {
               </span>
               {searchQuery && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary-foreground rounded-full text-sm">
-                  "{searchQuery}"
+                  &quot;{searchQuery}&quot;
                   <button
                     onClick={() => setSearchQuery("")}
                     className="hover:text-primary-foreground/80"

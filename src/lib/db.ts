@@ -8,7 +8,7 @@ export function readExpenses(): ExpenseData {
   try {
     const fileContents = fs.readFileSync(DATA_FILE, "utf-8");
     return JSON.parse(fileContents);
-  } catch (error) {
+  } catch {
     return {
       expenses: [],
       categories: [
