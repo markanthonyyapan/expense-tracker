@@ -1,15 +1,39 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Expense, ExpenseData } from "@/types/expense";
+import { useState, useEffect } from "react";
+import { Expense } from "@/types/expense";
 import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseList from "@/components/ExpenseList";
+import AuthForm from "@/components/AuthForm";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { useAuth } from "@/context/AuthContext";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  orderBy,
+  Timestamp,
+  where,
+} from "firebase/firestore";
 
-const STORAGE_KEY = "expense-tracker-data";
+const CATEGORIES = [
+  "Food",
+  "Transportation",
+  "Utilities",
+  "Entertainment",
+  "Shopping",
+  "Healthcare",
+  "Other",
+];
 
 export default function Home() {
-  const [data, setData] = useState<ExpenseData | null>(null);
+  const { user, loading: authLoading, signOut } = useAuth();
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -28,130 +52,122 @@ export default function Home() {
     category: string;
     date: string;
   } | null>(null);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
-  const readExpenses = useCallback(() => {
-    if (typeof window === "undefined") {
-      return {
-        expenses: [],
-        categories: [
-          "Food",
-          "Transportation",
-          "Utilities",
-          "Entertainment",
-          "Shopping",
-          "Healthcare",
-          "Other",
-        ],
-      };
-    }
-
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        return JSON.parse(data);
-      }
-    } catch (error) {
-      console.error("Failed to read expenses:", error);
-    }
-
-    return {
-      expenses: [],
-      categories: [
-        "Food",
-        "Transportation",
-        "Utilities",
-        "Entertainment",
-        "Shopping",
-        "Healthcare",
-        "Other",
-      ],
-    };
-  }, []);
-
-  const writeExpenses = useCallback((expenseData: ExpenseData) => {
-    if (typeof window === "undefined") return;
-
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(expenseData));
-    } catch (error) {
-      console.error("Failed to save expenses:", error);
-    }
-  }, []);
-
-  const fetchData = useCallback(() => {
-    setLoading(true);
-    const expenseData = readExpenses();
-    setData(expenseData);
-    setLoading(false);
-  }, [readExpenses]);
-
+  // Subscribe to real-time updates from Firebase - only for authenticated users
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!user) {
+      setExpenses([]);
+      setLoading(false);
+      setInitialDataLoaded(true);
+      return;
+    }
 
-  const handleAddExpense = (expense: {
+    setLoading(true);
+    const q = query(
+      collection(db, "expenses"),
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc"),
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const expenseData: Expense[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Expense[];
+        setExpenses(expenseData);
+        setLoading(false);
+        setInitialDataLoaded(true);
+      },
+      (error) => {
+        console.error("Error fetching expenses:", error);
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Filter and search expenses
+  const filteredExpenses = expenses.filter((expense) => {
+    const matchesSearch =
+      searchQuery === "" ||
+      expense.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "all" || expense.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const totalExpenses = filteredExpenses.reduce(
+    (sum, exp) => sum + exp.amount,
+    0,
+  );
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(amount);
+  };
+
+  const handleAddExpense = async (expense: {
     title: string;
     amount: number;
     category: string;
     date: string;
   }) => {
-    const newExpense: Expense = {
-      ...expense,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
+    if (!user) return;
 
-    const newData = {
-      ...data!,
-      expenses: [newExpense, ...data!.expenses],
-    };
-
-    writeExpenses(newData);
-    setData(newData);
-    setShowForm(false);
-    setEditingExpense(null);
-    setFormData(null);
+    try {
+      await addDoc(collection(db, "expenses"), {
+        ...expense,
+        userId: user.uid,
+        createdAt: Timestamp.now(),
+      });
+      setShowForm(false);
+      setEditingExpense(null);
+      setFormData(null);
+    } catch (error) {
+      console.error("Error adding expense:", error);
+    }
   };
 
-  const handleUpdateExpense = (expense: {
+  const handleUpdateExpense = async (expense: {
     title: string;
     amount: number;
     category: string;
     date: string;
   }) => {
-    if (!editingExpense || !data) return;
+    if (!editingExpense || !user) return;
 
-    const updatedExpense: Expense = {
-      ...expense,
-      id: editingExpense.id,
-      createdAt: editingExpense.createdAt,
-    };
-
-    const newData = {
-      ...data,
-      expenses: data.expenses.map((e) =>
-        e.id === editingExpense.id ? updatedExpense : e,
-      ),
-    };
-
-    writeExpenses(newData);
-    setData(newData);
-    setShowForm(false);
-    setEditingExpense(null);
-    setFormData(null);
-    setPendingEditData(null);
+    try {
+      const expenseRef = doc(db, "expenses", editingExpense.id);
+      await updateDoc(expenseRef, {
+        title: expense.title,
+        amount: expense.amount,
+        category: expense.category,
+        date: expense.date,
+        updatedAt: Timestamp.now(),
+      });
+      setShowForm(false);
+      setEditingExpense(null);
+      setFormData(null);
+      setPendingEditData(null);
+    } catch (error) {
+      console.error("Error updating expense:", error);
+    }
   };
 
-  const handleDeleteExpense = (id: string) => {
-    if (!data) return;
+  const handleDeleteExpense = async (id: string) => {
+    if (!user) return;
 
-    const newData = {
-      ...data,
-      expenses: data.expenses.filter((e) => e.id !== id),
-    };
-
-    writeExpenses(newData);
-    setData(newData);
+    try {
+      await deleteDoc(doc(db, "expenses", id));
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+    }
   };
 
   const handleEditClick = (expense: Expense) => {
@@ -167,7 +183,6 @@ export default function Home() {
 
   const handleFormClose = () => {
     if (formData && editingExpense) {
-      // Check if there are unsaved changes
       const hasChanges =
         formData.title !== editingExpense.title ||
         parseFloat(formData.amount) !== editingExpense.amount ||
@@ -191,46 +206,39 @@ export default function Home() {
     date: string;
   }) => {
     setFormData(newData);
+    if (editingExpense) {
+      setPendingEditData({
+        title: newData.title,
+        amount: parseFloat(newData.amount),
+        category: newData.category,
+        date: newData.date,
+      });
+    }
   };
 
-  // Filter and search expenses
-  const filteredExpenses =
-    data?.expenses.filter((expense) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        expense.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "all" || expense.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    }) || [];
-
-  const totalExpenses = filteredExpenses.reduce(
-    (sum, exp) => sum + exp.amount,
-    0,
-  );
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-PH", {
-      style: "currency",
-      currency: "PHP",
-    }).format(amount);
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
-  if (loading) {
+  // Show loading while checking auth
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-white dark:from-gray-900 dark:to-gray-800">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Loading your expenses...
-          </p>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <>
+  // Show login/signup if not authenticated
+  if (!user) {
+    return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md mx-auto">
           {/* Header */}
@@ -250,6 +258,83 @@ export default function Home() {
                   d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+              Expense Tracker
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Sign in to manage your personal finances
+            </p>
+          </header>
+
+          {/* Auth Form */}
+          <AuthForm />
+
+          {/* Footer */}
+          <footer className="mt-8 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-500">
+              Secure authentication with Firebase
+            </p>
+          </footer>
+        </div>
+      </div>
+    );
+  }
+
+  // Show expense tracker if authenticated
+  return (
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto">
+          {/* Header with user info and sign out */}
+          <header className="mb-8 text-center">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary shadow-lg">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-primary-foreground"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Signed in as
+                  </p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate max-w-[150px]">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                Sign Out
+              </button>
             </div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
               Expense Tracker
@@ -321,7 +406,7 @@ export default function Home() {
               className="input-field w-auto min-w-[120px]"
             >
               <option value="all">All</option>
-              {data?.categories.map((cat) => (
+              {CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>
@@ -423,11 +508,21 @@ export default function Home() {
             </button>
           )}
 
+          {/* Loading State */}
+          {loading && !initialDataLoaded && (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+              <p className="text-gray-500 dark:text-gray-400">
+                Loading expenses...
+              </p>
+            </div>
+          )}
+
           {/* Expense Form */}
           {showForm && (
             <div className="mb-6 animate-fade-in">
               <ExpenseForm
-                categories={data?.categories || []}
+                categories={CATEGORIES}
                 onAddExpense={
                   editingExpense ? handleUpdateExpense : handleAddExpense
                 }
@@ -439,11 +534,13 @@ export default function Home() {
           )}
 
           {/* Expense List */}
-          <ExpenseList
-            expenses={filteredExpenses}
-            onDelete={handleDeleteExpense}
-            onEdit={handleEditClick}
-          />
+          {!loading && initialDataLoaded && (
+            <ExpenseList
+              expenses={filteredExpenses}
+              onDelete={handleDeleteExpense}
+              onEdit={handleEditClick}
+            />
+          )}
 
           {/* Footer */}
           <footer className="mt-8 text-center">
@@ -462,7 +559,7 @@ export default function Home() {
                   d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                 />
               </svg>
-              Data stored locally
+              Data stored securely in Firebase
             </p>
           </footer>
         </div>
