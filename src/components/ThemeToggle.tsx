@@ -6,19 +6,11 @@ import { useTheme, Theme } from "@/context/ThemeContext";
 const themeIcons: Record<Theme, string> = {
   light: "☀️",
   dark: "🌙",
-  cupcake: "🧁",
-  bumblebee: "🐝",
-  synthwave: "🎹",
-  dracula: "🧛",
 };
 
 const themeNames: Record<Theme, string> = {
   light: "Light",
   dark: "Dark",
-  cupcake: "Cupcake",
-  bumblebee: "Bumblebee",
-  synthwave: "Synthwave",
-  dracula: "Dracula",
 };
 
 export default function ThemeToggle() {

@@ -2,13 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-export type Theme =
-  | "light"
-  | "dark"
-  | "cupcake"
-  | "bumblebee"
-  | "synthwave"
-  | "dracula";
+export type Theme = "light" | "dark";
 
 interface ThemeContextType {
   theme: Theme;
@@ -16,14 +10,7 @@ interface ThemeContextType {
   themes: Theme[];
 }
 
-const themes: Theme[] = [
-  "light",
-  "dark",
-  "cupcake",
-  "bumblebee",
-  "synthwave",
-  "dracula",
-];
+const themes: Theme[] = ["light", "dark"];
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
