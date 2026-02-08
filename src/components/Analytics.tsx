@@ -39,7 +39,38 @@ const CATEGORY_COLORS: Record<string, string> = {
   Other: "#6B7280",
 };
 
+function formatMonth(monthKey: string): string {
+  const [year, month] = monthKey.split("-");
+  const date = new Date(parseInt(year), parseInt(month) - 1);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    year: "2-digit",
+  });
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+  }).format(value);
+}
+
 export default function Analytics({ expenses }: AnalyticsProps) {
+  // Calculate statistics first
+  const stats = useMemo(() => {
+    if (expenses.length === 0) {
+      return { total: 0, average: 0, highest: 0, count: 0 };
+    }
+    const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const highest = Math.max(...expenses.map((e) => e.amount));
+    return {
+      total,
+      average: total / expenses.length,
+      highest,
+      count: expenses.length,
+    };
+  }, [expenses]);
+
   // Calculate category breakdown
   const categoryData = useMemo(() => {
     const categories: Record<string, number> = {};
@@ -64,37 +95,6 @@ export default function Analytics({ expenses }: AnalyticsProps) {
       .map(([name, value]) => ({ name: formatMonth(name), value }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [expenses]);
-
-  // Calculate statistics
-  const stats = useMemo(() => {
-    if (expenses.length === 0) {
-      return { total: 0, average: 0, highest: 0, count: 0 };
-    }
-    const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const highest = Math.max(...expenses.map((e) => e.amount));
-    return {
-      total,
-      average: total / expenses.length,
-      highest,
-      count: expenses.length,
-    };
-  }, [expenses]);
-
-  const formatMonth = (monthKey: string) => {
-    const [year, month] = monthKey.split("-");
-    const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      year: "2-digit",
-    });
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-PH", {
-      style: "currency",
-      currency: "PHP",
-    }).format(value);
-  };
 
   if (expenses.length === 0) {
     return (
