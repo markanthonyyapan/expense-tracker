@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+export const dynamic = "force-dynamic";
+
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Expense } from "@/types/expense";
 import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseList from "@/components/ExpenseList";
@@ -36,8 +39,46 @@ const CATEGORIES = [
   "Other",
 ];
 
-export default function Home() {
+// Loading component for Suspense fallback
+function HomeLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-white dark:from-gray-900 dark:to-gray-800">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-800"></div>
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-primary"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+        </div>
+        <p className="text-gray-600 dark:text-gray-400 font-medium">
+          Loading your expenses...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function HomeContent() {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const skipValentine = searchParams.get("skipValentine") === "true";
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [userName, setUserName] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -60,6 +101,17 @@ export default function Home() {
   } | null>(null);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [view, setView] = useState<"expenses" | "analytics">("expenses");
+
+  // Check if user is logged in and redirect to Valentine page
+  useEffect(() => {
+    if (!authLoading && user && !skipValentine) {
+      // Check if this is the first time showing Valentine page this session
+      const hasSeenValentine = sessionStorage.getItem("seenValentine");
+      if (!hasSeenValentine) {
+        router.push("/valentine");
+      }
+    }
+  }, [user, authLoading, router, skipValentine]);
 
   // Fetch user profile
   useEffect(() => {
@@ -85,6 +137,7 @@ export default function Home() {
 
     fetchUserProfile();
   }, [user]);
+
   useEffect(() => {
     if (!user) {
       setExpenses([]);
@@ -475,7 +528,7 @@ export default function Home() {
               </span>
               {searchQuery && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary-foreground rounded-full text-sm">
-                  &quot;{searchQuery}&quot;
+                  {`&quot;${searchQuery}&quot;`}
                   <button
                     onClick={() => setSearchQuery("")}
                     className="hover:text-primary-foreground/80"
@@ -521,29 +574,19 @@ export default function Home() {
                   </button>
                 </span>
               )}
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCategory("all");
-                }}
-                className="text-sm text-primary hover:underline ml-auto"
-              >
-                Clear all
-              </button>
             </div>
           )}
 
-          {/* View Toggle and Add Expense Button */}
-          {!showForm && (
+          {/* View Toggle */}
+          {!loading && initialDataLoaded && (
             <>
-              {/* View Toggle */}
               <div className="flex gap-2 mb-4">
                 <button
                   onClick={() => setView("expenses")}
-                  className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all ${
+                  className={`flex-1 py-2 px-4 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
                     view === "expenses"
                       ? "bg-primary text-primary-foreground shadow-lg"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
                 >
                   <svg
@@ -564,10 +607,10 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => setView("analytics")}
-                  className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all ${
+                  className={`flex-1 py-2 px-4 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
                     view === "analytics"
                       ? "bg-primary text-primary-foreground shadow-lg"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
                 >
                   <svg
@@ -704,5 +747,13 @@ export default function Home() {
         }}
       />
     </>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<HomeLoading />}>
+      <HomeContent />
+    </Suspense>
   );
 }

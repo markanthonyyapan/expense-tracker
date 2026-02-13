@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -6,7 +6,6 @@ import { ThemeProvider } from "@/context/ThemeContext";
 export const metadata: Metadata = {
   title: "Expense Tracker",
   description: "Personal expense tracker app",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -16,6 +15,12 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
   themeColor: "#F2BAC9",
 };
 
