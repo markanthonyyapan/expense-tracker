@@ -3,7 +3,6 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
 import { Expense } from "@/types/expense";
 import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseList from "@/components/ExpenseList";
@@ -13,6 +12,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import ProfileDropdown from "@/components/ProfileDropdown";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { useAuth } from "@/context/AuthContext";
+import { useBudget } from "@/context/BudgetContext";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -74,11 +74,64 @@ function HomeLoading() {
   );
 }
 
+// Budget Alert Component
+function BudgetAlert({ expenses }: { expenses: Expense[] }) {
+  const { getCurrentPeriodSpent, getBudgetStatus, settings } = useBudget();
+  const currentSpent = getCurrentPeriodSpent(expenses);
+  const { percentage, isOverBudget } = getBudgetStatus(expenses);
+
+  if (!settings.enableAlerts || percentage < settings.alertThreshold)
+    return null;
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(value);
+  };
+
+  return (
+    <div
+      className={`mb-4 p-3 rounded-lg flex items-center gap-3 ${
+        isOverBudget
+          ? "bg-red-50 dark:bg-red-900/20"
+          : "bg-yellow-50 dark:bg-yellow-900/20"
+      }`}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className={`h-5 w-5 ${isOverBudget ? "text-red-500" : "text-yellow-500"}`}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+        />
+      </svg>
+      <div className="flex-1">
+        <p
+          className={`text-sm font-medium ${
+            isOverBudget
+              ? "text-red-600 dark:text-red-400"
+              : "text-yellow-600 dark:text-yellow-400"
+          }`}
+        >
+          {isOverBudget
+            ? `Budget exceeded! ${formatCurrency(currentSpent - settings.budgetAmount)} over`
+            : `Budget warning: ${percentage}% used (${formatCurrency(currentSpent)}/${formatCurrency(settings.budgetAmount)})`}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function HomeContent() {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const skipValentine = searchParams.get("skipValentine") === "true";
+  const { settings } = useBudget();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [userName, setUserName] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -101,17 +154,6 @@ function HomeContent() {
   } | null>(null);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [view, setView] = useState<"expenses" | "analytics">("expenses");
-
-  // Check if user is logged in and redirect to Valentine page
-  useEffect(() => {
-    if (!authLoading && user && !skipValentine) {
-      // Check if this is the first time showing Valentine page this session
-      const hasSeenValentine = sessionStorage.getItem("seenValentine");
-      if (!hasSeenValentine) {
-        router.push("/valentine");
-      }
-    }
-  }, [user, authLoading, router, skipValentine]);
 
   // Fetch user profile
   useEffect(() => {
@@ -377,7 +419,7 @@ function HomeContent() {
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
-              Expense Tracker
+              ExpindiTrack
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
               Sign in to manage your personal finances
@@ -442,7 +484,7 @@ function HomeContent() {
             </div>
             <div className="text-center">
               <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
-                Expense Tracker
+                ExpendiTrack
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
                 Manage your personal finances
@@ -477,6 +519,11 @@ function HomeContent() {
               </p>
             </div>
           </div>
+
+          {/* Budget Alert */}
+          {view === "expenses" &&
+            settings.enableAlerts &&
+            expenses.length > 0 && <BudgetAlert expenses={expenses} />}
 
           {/* Search and Filter Bar */}
           <div className="mb-4 flex gap-2">

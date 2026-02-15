@@ -2,15 +2,16 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { BudgetProvider } from "@/context/BudgetContext";
 
 export const metadata: Metadata = {
-  title: "Expense Tracker",
+  title: "ExpendiTrack",
   description: "Personal expense tracker app",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Expense Tracker",
+    title: "ExpendiTrack",
   },
   formatDetection: {
     telephone: false,
@@ -37,7 +38,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <BudgetProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </BudgetProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Expense } from "@/types/expense";
 import ConfirmationModal from "./ConfirmationModal";
 
@@ -14,6 +14,8 @@ interface GroupedExpenses {
   [date: string]: Expense[];
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export default function ExpenseList({
   expenses,
   onDelete,
@@ -22,6 +24,8 @@ export default function ExpenseList({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -86,8 +90,24 @@ export default function ExpenseList({
     setTimeout(() => setDeletingId(null), 300);
   };
 
+  // Get available months from expenses
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    expenses.forEach((expense) => {
+      const month = expense.date.substring(0, 7); // YYYY-MM
+      months.add(month);
+    });
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  }, [expenses]);
+
+  // Filter expenses by selected month
+  const filteredExpenses = useMemo(() => {
+    if (selectedMonth === "all") return expenses;
+    return expenses.filter((expense) => expense.date.startsWith(selectedMonth));
+  }, [expenses, selectedMonth]);
+
   // Group expenses by date
-  const groupedExpenses: GroupedExpenses = expenses.reduce(
+  const groupedExpenses: GroupedExpenses = filteredExpenses.reduce(
     (groups, expense) => {
       const date = expense.date;
       if (!groups[date]) {
@@ -104,7 +124,21 @@ export default function ExpenseList({
     (a, b) => new Date(b).getTime() - new Date(a).getTime(),
   );
 
-  if (expenses.length === 0) {
+  // Get visible dates based on pagination
+  const visibleDates = sortedDates.slice(0, visibleCount);
+  const hasMore = visibleCount < sortedDates.length;
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => prev + ITEMS_PER_PAGE);
+  };
+
+  const formatMonthOption = (month: string) => {
+    const [year, monthNum] = month.split("-");
+    const date = new Date(parseInt(year), parseInt(monthNum) - 1);
+    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  };
+
+  if (filteredExpenses.length === 0) {
     return (
       <div className="card text-center py-12">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
@@ -127,7 +161,9 @@ export default function ExpenseList({
           No expenses found
         </p>
         <p className="text-sm text-gray-400 dark:text-gray-500">
-          Try adjusting your search or filter
+          {selectedMonth !== "all"
+            ? "Try selecting a different month"
+            : "Try adjusting your search or filter"}
         </p>
       </div>
     );
@@ -136,16 +172,38 @@ export default function ExpenseList({
   return (
     <>
       <div className="space-y-6">
-        <div className="flex items-center justify-between mb-4">
+        {/* Header with Filter */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
             History
           </h2>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {expenses.length} {expenses.length === 1 ? "item" : "items"}
-          </span>
+          <div className="flex items-center gap-3">
+            {/* Month Filter */}
+            {availableMonths.length > 1 && (
+              <select
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value);
+                  setVisibleCount(ITEMS_PER_PAGE); // Reset pagination when filter changes
+                }}
+                className="input-field w-auto min-w-[150px]"
+              >
+                <option value="all">All Months</option>
+                {availableMonths.map((month) => (
+                  <option key={month} value={month}>
+                    {formatMonthOption(month)}
+                  </option>
+                ))}
+              </select>
+            )}
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {filteredExpenses.length}{" "}
+              {filteredExpenses.length === 1 ? "item" : "items"}
+            </span>
+          </div>
         </div>
 
-        {sortedDates.map((date, dateIndex) => {
+        {visibleDates.map((date, dateIndex) => {
           const dayExpenses = groupedExpenses[date];
           const dayTotal = getDayTotal(dayExpenses);
 
@@ -262,6 +320,15 @@ export default function ExpenseList({
             </div>
           );
         })}
+
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="flex justify-center pt-4">
+            <button onClick={handleLoadMore} className="btn btn-outline">
+              Load More ({sortedDates.length - visibleCount} more)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}

@@ -1,4 +1,4 @@
-# Expense Tracker
+# ExpendiTrack
 
 A personal expense tracker built with Next.js 14, Tailwind CSS, and local JSON storage.
 

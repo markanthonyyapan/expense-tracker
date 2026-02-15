@@ -18,3 +18,18 @@ export interface ExpenseFormData {
   category: string;
   date: string;
 }
+
+export interface Budget {
+  id: string;
+  amount: number;
+  month: string; // Format: YYYY-MM
+  category?: string; // Optional: budget per category
+  createdAt: string;
+}
+
+export interface BudgetSettings {
+  budgetAmount: number;
+  budgetPeriod: "daily" | "weekly" | "monthly";
+  alertThreshold: number; // Percentage (e.g., 80 = 80%)
+  enableAlerts: boolean;
+}

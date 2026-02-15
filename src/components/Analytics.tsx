@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   PieChart,
   Pie,
@@ -14,6 +14,8 @@ import {
   Legend,
 } from "recharts";
 import { Expense } from "@/types/expense";
+import { useBudget } from "@/context/BudgetContext";
+import BudgetSettings from "./BudgetSettings";
 
 interface AnalyticsProps {
   expenses: Expense[];
@@ -59,13 +61,29 @@ export default function Analytics({ expenses }: AnalyticsProps) {
   // Calculate statistics first
   const stats = useMemo(() => {
     if (expenses.length === 0) {
-      return { total: 0, average: 0, highest: 0, count: 0 };
+      return { total: 0, average: 0, averageDaily: 0, highest: 0, count: 0 };
     }
     const total = expenses.reduce((sum, e) => sum + e.amount, 0);
     const highest = Math.max(...expenses.map((e) => e.amount));
+
+    // Calculate average daily expenses
+    const sortedExpenses = [...expenses].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+    const firstDate = new Date(sortedExpenses[0].date);
+    const lastDate = new Date(sortedExpenses[sortedExpenses.length - 1].date);
+    const dayDiff = Math.max(
+      1,
+      Math.ceil(
+        (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24),
+      ),
+    );
+    const averageDaily = total / dayDiff;
+
     return {
       total,
       average: total / expenses.length,
+      averageDaily,
       highest,
       count: expenses.length,
     };
@@ -127,6 +145,9 @@ export default function Analytics({ expenses }: AnalyticsProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Budget Progress */}
+      <BudgetProgress expenses={expenses} />
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
         <div className="card p-4 bg-gradient-to-br from-primary/20 to-primary/5">
@@ -157,6 +178,14 @@ export default function Analytics({ expenses }: AnalyticsProps) {
           </p>
           <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
             {formatCurrency(stats.highest)}
+          </p>
+        </div>
+        <div className="card p-4 bg-gradient-to-br from-secondary/20 to-secondary/5">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Daily Average
+          </p>
+          <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+            {formatCurrency(stats.averageDaily)}
           </p>
         </div>
       </div>
@@ -281,5 +310,131 @@ export default function Analytics({ expenses }: AnalyticsProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+// Budget Progress Component
+function BudgetProgress({ expenses }: { expenses: Expense[] }) {
+  const { settings, getCurrentPeriodSpent, getBudgetStatus } = useBudget();
+  const [showSettings, setShowSettings] = useState(false);
+
+  const currentSpent = getCurrentPeriodSpent(expenses);
+  const { percentage, isOverBudget, isWarning } = getBudgetStatus(expenses);
+
+  const remaining = Math.max(0, settings.budgetAmount - currentSpent);
+
+  const getProgressColor = () => {
+    if (isOverBudget) return "bg-red-500";
+    if (isWarning) return "bg-yellow-500";
+    return "bg-primary";
+  };
+
+  const getStatusMessage = () => {
+    if (isOverBudget)
+      return `You've exceeded your ${settings.budgetPeriod} budget!`;
+    if (isWarning) return `Warning: You've used ${percentage}% of your budget`;
+    return `${percentage}% of budget used`;
+  };
+
+  return (
+    <>
+      <div className="card p-4">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+            Monthly Budget
+          </h3>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 text-gray-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex justify-between items-end mb-2">
+          <div>
+            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+              {formatCurrency(currentSpent)}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              of {formatCurrency(settings.budgetAmount)} /{" "}
+              {(settings.budgetPeriod || "monthly").charAt(0).toUpperCase() +
+                (settings.budgetPeriod || "monthly").slice(1)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p
+              className={`text-sm font-medium ${
+                isOverBudget
+                  ? "text-red-500"
+                  : isWarning
+                    ? "text-yellow-500"
+                    : "text-gray-500"
+              }`}
+            >
+              {getStatusMessage()}
+            </p>
+            {!isOverBudget && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {formatCurrency(remaining)} remaining
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${getProgressColor()}`}
+            style={{ width: `${Math.min(percentage, 100)}%` }}
+          />
+        </div>
+
+        {isOverBudget && (
+          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 text-red-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <p className="text-sm text-red-600 dark:text-red-400">
+              Budget exceeded by{" "}
+              {formatCurrency(currentSpent - settings.budgetAmount)}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {showSettings && (
+        <BudgetSettings onClose={() => setShowSettings(false)} />
+      )}
+    </>
   );
 }
